@@ -2,12 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0
 
-# I don't remember why
-# I had this shebang
-# so let's have it just in case
-# until next test
-#!/data/data/com.termux/files/usr/bin/env bash
-
 _bin="$( \
   dirname \
     "$( \
@@ -21,63 +15,80 @@ source \
 
 _root_requirements() {
   _check_cmd \
-    "su" \
-    "tsu"
+    "bbrightnessctl" \
+    "bbrightnessctl"
+  _check_cmd \
+    "displayctl" \
+    "displayctl"
 }
 
 # shellcheck disable=SC2034
 _global_variables() {
-  get_date=""
-  get_mode=""
+  dim_date=""
+  dim_mode=""
   color=""
   quiet=""
 }
 
-_root_get() {
+_root_dim() {
   local \
-    _cmd=() \
-    _value \
+    _brightness \
+    _bbrightnessctl_opts=() \
+    _displayctl_opts=() \
     _status
-  if [[ "${TERMUX_VERSION}" != "" ]]; then
-    _cmd=(
-      pm
-        grant
-          com.termux
-          android.permission.DUMP
+  if [[ "${quiet}" != "y" ]]; then
+    _bbrightnessctl_opts+=(
+      -v
     )
-    su \
-      -c \
-      "${_cmd[@]}"
-    _cmd=(
-      /system/bin/dumpsys
-        deviceidle
+    _displayctl_opts+=(
+      -v
     )
-    _value="$( \
-      su \
-        -c \
-        "${_cmd[@]}" | \
-        grep \
-          "mScreenOn=" | \
-          awk \
-            -F \
-              "=" \
-            '{print $2}')"
   fi
-  if [[ "${_value}" == "true" ]]; then
-    _status="on"
-  elif [[ "${_value}" == "false" ]]; then
-    _status="off"
-  fi
-  echo \
-    "${_status}"
+  _brightness="$( \
+    bbrightnessctl \
+      "${_bbrightnessctl_opts[@]}" \
+      -m \
+        root \
+      get || \
+      true)"
+  if [ 1 -le "${_brightness}" ] ; then
+    _msg_info \
+      "Current brightness: ${_brightness}"
+    bbrightnessctl \
+      "${_bbrightnessctl_opts[@]}" \
+      -m \
+        root \
+      set \
+        0 || \
+      true
+  elif [[ 0 == "${_brightness}" ]]; then
+    _status="$( \
+      display-status)"
+    if [[ "${_status}" == "off" ]]; then
+      _msg_info \
+        "Display off, turning on"
+      displayctl \
+        "${_displayctl_opts[@]}" \
+        set \
+          status \
+          'on'
+      bbrightnessctl \
+        "${_bbrightnessctl_opts[@]}" \
+        -m \
+          root \
+        set \
+          0 || \
+        true
+    fi || \
+      true
+  fi || \
+    true
 }
 
-_display_status() {
+_android_display_dim() {
   local \
-    _mode="${1}" \
-    _cmd=() \
-    _activities
-  "_${_mode}_get"
+    _mode="${1}"
+  "_${_mode}_dim"
 }
 
 _auto_detect_mode() {
@@ -98,11 +109,11 @@ _auto_detect_mode() {
 
 _set_overrides() {
   _set_override \
-    "get" \
+    "dim" \
     "date" \
     "$(_get_date_human)"
   _set_override \
-    "get" \
+    "dim" \
     "mode" \
     "$(_auto_detect_mode)"
   if [[ -v override_color ]]; then
@@ -120,8 +131,8 @@ _set_overrides() {
 # Shows configuration options.
 _show_config() {
   _msg_info "${app_name} configuration"
-  _msg_info "   Display status at date:   $(_get "get" "date")"
-  _msg_info "                 Get mode:   $(_get "get" "mode")"
+  _msg_info "                 Dim date:   $(_get "dim" "date")"
+  _msg_info "                 Dim mode:   $(_get "dim" "mode")"
 }
 
 # Show help usage, with an exit status.
@@ -136,14 +147,14 @@ _usage() {
       _usage_text << \
         ENDUSAGETEXT || true
 
-Get Android display status
+Dim display
 
 Usage:
   $(_get "app" "name")
     [options]
   options:
-     -m <method>          Method to obtain display status.
-                          Default: $(_get "get" "mode")
+     -m <method>          Method to dim display status.
+                          Default: $(_get "dim" "mode")
      -h                   This message.
      -v                   Enable verbose output
 ENDUSAGETEXT
@@ -160,12 +171,11 @@ _global_variables
 # shellcheck disable=SC2034
 while \
   getopts \
-    'm:a:cvh?' \
+    'm:cvh?' \
     arg; do
   case \
     "${arg}" in
-    m) override_get_mode="${OPTARG}" ;;
-    a) override_sdk_version="${OPTARG}" ;;
+    m) override_dim_mode="${OPTARG}" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -188,11 +198,11 @@ shift \
 _set_overrides
 app_opts=(
   "$(_get \
-       "get" \
+       "dim" \
        "mode")"
 )
 _show_config
-_display_status \
+_android_display_dim \
   "${app_opts[@]}"
 
 # vim:set sw=2 sts=-1 et:
