@@ -152,11 +152,13 @@ Dim display
 Usage:
   $(_get "app" "name")
     [options]
+
   options:
      -m <method>          Method to dim display status.
                           Default: $(_get "dim" "mode")
      -h                   This message.
      -v                   Enable verbose output
+
 ENDUSAGETEXT
   _printf \
     '%s\n' \
