@@ -26,8 +26,7 @@
 
 # Android Display Dim (`android-display-dim`)
 
-The [`android-display-dim`](
-  https://github.com/themartiancompany/android-display-dim)
+The `android-display-dim`
 program is an utility to programmatically dim
 the displays of an Android device.
 
@@ -67,6 +66,23 @@ tools is hosted on
   https://github.com/themartiancompany/android-display-dim-ur).
 Be aware the mirror could go offline any time as Github and more
 in general all HTTP resources are inherently unstable and censorable.
+
+## Documentation
+
+The manual can be consulted
+with the command:
+
+```bash
+man \
+  android-display-dim
+```
+
+The source in RestructuredText
+format is in the `man` submodule
+directory pointing to the
+[`android-display-dim-man`](
+  https://github.com/themartiancompany/android-display-dim-man)
+repository.
 
 ## License
 
